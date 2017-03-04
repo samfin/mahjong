@@ -4,6 +4,9 @@
 #include "tiles.h"
 using namespace std;
 
+#ifndef SCORE_H
+#define SCORE_H
+
 const int yakuhai_val[10] = {0, 2, 0, 0, 0, 1, 1, 1};
 const int maxed_points[100] = {0, 0, 0, 0, 0, 8000, 12000, 12000, 16000, 16000, 16000, 24000, 24000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000};
 
@@ -139,3 +142,5 @@ typedef struct {
 
   vector<tile_t> dora_tiles;
 } game_t;
+
+#endif

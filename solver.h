@@ -9,6 +9,9 @@ using namespace std;
 #ifndef SOLVER_H
 #define SOLVER_H
 
+#define INFINITE 9999
+
+// Todo: add discarded tiles
 typedef struct {
   // suit, val
   int n_tiles[8][10];
@@ -45,7 +48,7 @@ ostream& operator<<(ostream& stream, const state_t& s) {
 }
 
 typedef struct {
-  void init(state_t& state) {
+  void preprocess_patterns(state_t& state) {
     all_patterns.clear();
     for(int i = 1; i <= 7; i++) {
       for(int suit = MAN; suit <= SOU; suit++) {
@@ -64,9 +67,10 @@ typedef struct {
   }
 
   int get_score(state_t& state) {
+
     // Find out how long this hand takes to make
     tile_t last_tile;
-    int last_draw = 0; // 1 indexed
+    int last_draw = -1; // 1 indexed
     for(int s = 1; s <= 4; s++) {
       for(int v = 1; v <= 9; v++) {
         int k = state.max_order_ind[s][v] - state.n_tiles[s][v];
@@ -92,7 +96,7 @@ typedef struct {
       }
     }
 
-    // cout << accumulator << " " << last_tile << " " << has_ryanmen << " " << has_other << "\n";
+    // // cout << accumulator << " " << last_tile << " " << has_ryanmen << " " << has_other << "\n";
 
     int score = 0;
     if(has_ryanmen) {
@@ -111,7 +115,7 @@ typedef struct {
       return get_score(state);
     }
 
-    int best_score = 999;
+    int best_score = INFINITE;
     for(int tile_ind = start; tile_ind < 34; tile_ind++) {
       int suit = tile_ind / 9 + 1;
       int val = tile_ind % 9 + 1;
@@ -132,7 +136,7 @@ typedef struct {
 
   // For hands which are missing only the pair
   int pair_solve(state_t& state) {
-    int best_score = 999;
+    int best_score = INFINITE;
     // Find the pairs
     for(int suit = MAN; suit <= HONORS; suit++) {
       for(int val = 1; val <= 9; val++) {
@@ -157,7 +161,7 @@ typedef struct {
       return pair_solve(state);
     }
 
-    int best_score = 999;
+    int best_score = INFINITE;
     for(int pattern_ind = start; pattern_ind < all_patterns.size(); pattern_ind++) {
       group_t group = all_patterns[pattern_ind];
       if(group.type == CHI && state.n_tiles[group.suit][group.val] && state.n_tiles[group.suit][group.val + 1] && state.n_tiles[group.suit][group.val + 2]) {
@@ -175,11 +179,12 @@ typedef struct {
         state.n_tiles[group.suit][group.val + 2]++;
       } else if(group.type == PON && state.n_tiles[group.suit][group.val] >= 3) {
         state.n_tiles[group.suit][group.val] -= 3;
-        
         accumulator.push_back(group);
-        meld_solve(state, pattern_ind);
-        accumulator.pop_back();
 
+        int score = meld_solve(state, pattern_ind);
+        best_score = min(best_score, score);
+
+        accumulator.pop_back();
         state.n_tiles[group.suit][group.val] += 3;
       }
     }
@@ -188,7 +193,7 @@ typedef struct {
 
   int full_solve(state_t& state) {
     accumulator.clear();
-    init(state);
+    preprocess_patterns(state);
     int normal_score = meld_solve(state);
     int chitoitsu_score = chitoitsu_solve(state);
     return min(normal_score, chitoitsu_score);
@@ -229,7 +234,7 @@ typedef struct {
       }
       // cout << "\nAll tiles: " << state << "\n";
       int turn = full_solve(state);
-      if(turn < 999) {
+      if(turn < INFINITE) {
         win_sum += 1;
         turn_sum += turn;
       }
@@ -238,6 +243,25 @@ typedef struct {
     float winrate = (win_sum * 1.0 / 10000);
     float average_turn = (turn_sum * 1.0 / win_sum);
     printf("This hand has win rate %.02f and wins by turn %.02f on average.", winrate, average_turn);
+  }
+
+  state_t init_from_string(string hand) {
+    game.dora_tiles.clear();
+    state_t state;
+    memset(&state, 0, sizeof(state));
+
+    int suit = 1;
+    for(char c : hand) {
+      if(c == '-') continue;
+      if(c == ' ') {
+        suit++;
+        continue;
+      }
+      int val = c - '0';
+      state.insert(suit, val);
+    }
+
+    return state;
   }
 
   vector<group_t> all_patterns;
