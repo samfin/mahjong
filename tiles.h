@@ -26,6 +26,8 @@ using namespace std;
 #define CHI 2
 #define PAIR 3
 
+const int LENGTH_BY_TYPE[4] = {0, 3, 3, 2};
+
 #define RYANMEN 1
 #define PENCHAN 2
 #define KANCHAN 3
@@ -35,6 +37,7 @@ using namespace std;
 typedef struct _tile_t {
   int suit:8;
   int val:8;
+  bool is_red_dora;
 
   bool operator==(struct _tile_t& tile) {
     return suit == tile.suit && val == tile.val;
@@ -46,11 +49,12 @@ typedef struct {
   int val;
   int type;
 
-  bool contains(tile_t tile) {
+  int count(tile_t tile) {
     if(type == CHI) {
-      return (suit == tile.suit) && (tile.val >= val) && (tile.val <= val + 2);
+      return ((suit == tile.suit) && (tile.val >= val) && (tile.val <= val + 2));
     } else {
-      return (suit == tile.suit) && (val == tile.val);
+      bool has_tile = ((suit == tile.suit) && (val == tile.val));
+      return has_tile * LENGTH_BY_TYPE[type];
     }
   }
 } group_t;
@@ -63,13 +67,35 @@ tile_list_t get_tiles(const group_t& group) {
   int n = 3 - (group.type == PAIR);
   for(int i = 0; i < n; i++) {
     int val = (group.type == CHI) * i + group.val;
-    out.push_back({ group.suit, val });
+    out.push_back({ group.suit, val, 0 });
   }
   return out;
 }
 
+tile_t parse_tile(string s) {
+  int val = s[0] - '0';
+  bool is_red_dora = false;
+  if(s[0] == 'r') {
+    val = 5;
+    is_red_dora = true;
+  }
+
+  if(val < 0 || val > 9)
+    return {0, 0, 0};
+  char suit = HONORS;
+  if(s.size() > 1)
+    suit = s[1];
+  if(suit == 'm')
+    return {MAN, val, is_red_dora};
+  if(suit == 'p')
+    return {PIN, val, is_red_dora};
+  if(suit == 's')
+    return {SOU, val, is_red_dora};
+  return {HONORS, val, 0};
+}
+
 const string honor_names[10] = {"kappa", "East", "South", "West", "North", "Haku", "Hatsu", "Chun"};
-const string abbreviated_suit_names[4] = {"kappaross", "m", "p", "s"};
+const string abbreviated_suit_names[8] = {"kappaross", "m", "p", "s", "h"};
 ostream& operator<<(ostream& stream, const tile_t& t) {
   if(t.suit == HONORS)
     stream << honor_names[t.val];
@@ -81,7 +107,7 @@ ostream& operator<<(ostream& stream, const tile_t& t) {
 ostream& operator<<(ostream& stream, const group_t& g) {
   tile_list_t tiles = get_tiles(g);
   stream << "[";
-  for(int i = 0; i < tiles.size(); i++) {
+  for(unsigned int i = 0; i < tiles.size(); i++) {
     if(i > 0) stream << " ";
     stream << tiles[i];
   }
@@ -90,7 +116,7 @@ ostream& operator<<(ostream& stream, const group_t& g) {
 }
 
 ostream& operator<<(ostream& stream, const grouped_hand_t& hand) {
-  for(int i = 0; i < hand.size(); i++) {
+  for(unsigned int i = 0; i < hand.size(); i++) {
     if(i > 0) stream << " ";
     stream << hand[i];
   }

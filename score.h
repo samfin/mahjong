@@ -10,8 +10,35 @@ using namespace std;
 const int yakuhai_val[10] = {0, 2, 0, 0, 0, 1, 1, 1};
 const int maxed_points[100] = {0, 0, 0, 0, 0, 8000, 12000, 12000, 16000, 16000, 16000, 24000, 24000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000, 32000};
 
+unsigned const int win_freq[20] = {0, 300, 3299, 19037, 76238, 237532, 607366, 1329287, 2549063, 4357402, 6722718, 9394787, 11917138, 13660529, 13996456, 12655771, 9919669, 6604585, 3643116};
+// Probability that no opponent has won by turn n
+double opponent_win_probability[20];
+
+void init_win_probability(int offset = 0) {
+  memset(opponent_win_probability, 0, sizeof(opponent_win_probability));
+  unsigned int sum = 0;
+  unsigned const int total = 100000000;
+  opponent_win_probability[0] = 1.0;
+  int offset_sum = 0;
+  for(int i = 0; i < 20; i++) {
+    sum += win_freq[i];
+    double p;
+    if(i <= offset) {
+      offset_sum = sum;
+      p = 0;
+    } else {
+      p = ((double) (sum - offset_sum) ) / (total - offset_sum);
+    }
+    opponent_win_probability[i] = (1 - p) * (1 - p) * (1 - p);
+  }
+}
+
+double get_adjusted_score(int score, int turn) {
+  return opponent_win_probability[turn - 1] * score;
+}
+
 typedef struct {
-  int score(grouped_hand_t& hand, bool is_ryanmen) {
+  int score(grouped_hand_t& hand, bool is_ryanmen, int n_red_dora = 0) {
     int han = 1; // We are counting riichi, but not tsumo
     int fu = 30 + 2 * (!is_ryanmen);
 
@@ -24,7 +51,6 @@ typedef struct {
     bool is_chanta = true;
     int n_pons = 0;
     int n_peikou = 0;
-    int n_yakuhai = 0;
     int n_dora = 0;
     int n_groups = hand.size();
 
@@ -32,11 +58,8 @@ typedef struct {
       freq[group.suit][group.val][group.type]++;
       suit_freq[group.suit]++;
 
-      auto tiles = get_tiles(group);
-      for(tile_t tile : tiles) {
-        for(tile_t dora : dora_tiles) {
-          n_dora += (tile == dora);
-        }
+      for(tile_t dora : dora_tiles) {
+        n_dora += group.count(dora);
       }
 
       bool is_yakuhai = (group.suit == HONORS && yakuhai_val[group.val] > 0);
@@ -125,7 +148,7 @@ typedef struct {
       han += 3;
 
     // Dora
-    han += n_dora;
+    han += n_dora + n_red_dora;
 
     // cout << han << " han, " << fu << " fu (" << n_dora << " dora)\n";
 
