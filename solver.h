@@ -239,7 +239,7 @@ typedef struct {
     reset_results();
     preprocess_patterns(state);
     meld_solve(state);
-    // chitoitsu_solve(state);
+    chitoitsu_solve(state);
   }
 
   void reset_game_state() {

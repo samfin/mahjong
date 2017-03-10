@@ -5,7 +5,7 @@
 #include "deck.h"
 using namespace std;
 
-#define N_TRIALS 10
+#define N_TRIALS 25000
 
 tile_t eval_state(solver_t& solver, state_t& initial_state, deck_t& initial_deck, int offset, int n_trials = N_TRIALS) {
 
@@ -151,7 +151,7 @@ void command_loop() {
   while(1) {
     cin.clear();
     string input;
-    cout << "> ";
+    cout << ">> ";
     getline(cin, input);
     char command = input[0];
 
@@ -167,11 +167,6 @@ void command_loop() {
       tile_t tile = parse_tile(data);
       cout << "Adding tile " << tile << " to list of dora\n";
       solver.game.dora_tiles.push_back(tile);
-    } else if(command == 'h') {
-      string data = input.substr(2);
-      current_hand = solver.init_from_string(data);
-      all_drawn_tiles = current_hand;
-      cout << "Hand set to " << data << "\n";
     } else if(command == 't') {
       string data = input.substr(2);
       int n = stoi(data);
@@ -179,7 +174,11 @@ void command_loop() {
       all_drawn_tiles.n += n;
       current_hand.n += n;
       cout << "Thrown away " << n << " tiles.\n";
-    } else {
+    } else if(input.size() > 5) {
+      current_hand = solver.init_from_string(input);
+      all_drawn_tiles = current_hand;
+      cout << "Hand set to " << input << "\n";
+    } else if(input.size() > 0) {
       tile_t drawn_tile = parse_tile(input);
       current_hand.insert(drawn_tile.suit, drawn_tile.val, drawn_tile.is_red_dora);
       all_drawn_tiles.insert(drawn_tile.suit, drawn_tile.val, drawn_tile.is_red_dora);
