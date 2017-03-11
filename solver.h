@@ -61,6 +61,7 @@ ostream& operator<<(ostream& stream, const state_t& s) {
 typedef struct {
 
   vector<group_t> all_patterns;
+  vector<group_t> all_pairs;
   game_t game;
   grouped_hand_t accumulator;
   double best_score;
@@ -68,6 +69,7 @@ typedef struct {
 
   void preprocess_patterns(state_t& state) {
     all_patterns.clear();
+    all_pairs.clear();
     for(int i = 1; i <= 7; i++) {
       for(int suit = MAN; suit <= SOU; suit++) {
         if(state.n_tiles[suit][i] > 0 && state.n_tiles[suit][i + 1] > 0 && state.n_tiles[suit][i + 2] > 0) {
@@ -79,6 +81,9 @@ typedef struct {
       for(int suit = MAN; suit <= HONORS; suit++) {
         if(state.n_tiles[suit][i] >= 3) {
           all_patterns.push_back({ suit, i, PON });
+        }
+        if(state.n_tiles[suit][i] >= 2) {
+          all_pairs.push_back({ suit, i, PAIR });
         }
       }
     }
@@ -97,13 +102,12 @@ typedef struct {
 
   void process_result(state_t& state, double score) {
     best_score = max(best_score, score);
-    for(int tile_ind = 0; tile_ind < 34; tile_ind++) {
-      int suit = tile_ind / 9 + 1;
-      int val = tile_ind % 9 + 1;
-
-      int used_tiles = state.max_order_ind[suit][val] - state.n_tiles[suit][val];
-      for(int k = used_tiles; k < state.max_order_ind[suit][val]; k++) {
-        value_per_tile[suit][val][k] = max(value_per_tile[suit][val][k], score);
+    for(int suit = 1; suit <= 4; suit++) {
+      for(int val = 1; val <= 9; val++) {
+        int used_tiles = state.max_order_ind[suit][val] - state.n_tiles[suit][val];
+        for(int k = used_tiles; k < state.max_order_ind[suit][val]; k++) {
+          value_per_tile[suit][val][k] = max(value_per_tile[suit][val][k], score);
+        }
       }
     }
   }
@@ -130,10 +134,11 @@ typedef struct {
     }
 
     // Figure out possible waits
-    bool has_ryanmen = false;
+    bool has_ryanmen = true;
     bool has_other = false;
 
-    for(group_t group : accumulator) {
+    for(unsigned int i = 0; i < accumulator.size(); i++) {
+      group_t& group = accumulator[i];
       if(group.count(last_tile)) {
         int wait_type = get_wait_type(group, last_tile);
         if(wait_type == RYANMEN)
@@ -164,27 +169,26 @@ typedef struct {
 
   void chitoitsu_solve(state_t& state, int start = 0) {
     if(accumulator.size() == 7) {
-      return finished_hand(state);
+      finished_hand(state);
     }
+    if(all_pairs.size() - start < 7 - accumulator.size())
+      return;
 
-    for(int tile_ind = start; tile_ind < 34; tile_ind++) {
-      int suit = tile_ind / 9 + 1;
-      int val = tile_ind % 9 + 1;
+    for(unsigned int pair_ind = start; pair_ind < all_pairs.size(); pair_ind++) {
+      group_t group = all_pairs[pair_ind];
 
-      if(state.n_tiles[suit][val] >= 2) {
-        state.n_tiles[suit][val] -= 2;
-        accumulator.push_back({ suit, val, PAIR });
+      state.n_tiles[group.suit][group.val] -= 2;
+      accumulator.push_back(group);
 
-     chitoitsu_solve(state, tile_ind + 1);
+      chitoitsu_solve(state, pair_ind + 1);
 
-        accumulator.pop_back();
-        state.n_tiles[suit][val] += 2;
-      }
+      accumulator.pop_back();
+      state.n_tiles[group.suit][group.val] += 2;
     }
   }
 
   // For hands which are missing only the pair
-  int pair_solve(state_t& state) {
+  void pair_solve(state_t& state) {
     // Find the pairs
     for(int suit = MAN; suit <= HONORS; suit++) {
       for(int val = 1; val <= 9; val++) {
@@ -202,7 +206,7 @@ typedef struct {
   }
 
   // For hands which do not yet have all melds
-  int meld_solve(state_t& state, int start = 0) {
+  void meld_solve(state_t& state, int start = 0) {
     if(accumulator.size() == 4) {
       return pair_solve(state);
     }

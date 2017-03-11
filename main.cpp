@@ -5,7 +5,7 @@
 #include "deck.h"
 using namespace std;
 
-#define N_TRIALS 25000
+#define N_TRIALS 200000
 
 tile_t eval_state(solver_t& solver, state_t& initial_state, deck_t& initial_deck, int offset, int n_trials = N_TRIALS) {
 
@@ -19,7 +19,7 @@ tile_t eval_state(solver_t& solver, state_t& initial_state, deck_t& initial_deck
     }
   }
 
-  int tiles_left = 17 - offset;
+  int tiles_left = min(12, 17 - offset);
 
   for(int n = 1; n <= n_trials; n++) {
     state_t state = initial_state;
@@ -119,8 +119,8 @@ void analyze_turn_data() {
 
 void test() {
   string hand = "138 6779 1889 113";
-  hand = "337 1234789 5677 -";
-  eval(hand, 11);
+  // hand = "337 1234789 5677 -";
+  eval(hand);
 }
 
 void eval_loop() {
@@ -140,7 +140,6 @@ void eval_loop() {
 
 void command_loop() {
   solver_t solver;
-  state_t tiles;
 
   state_t current_hand;
   state_t all_drawn_tiles;
