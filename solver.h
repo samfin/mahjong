@@ -67,22 +67,25 @@ typedef struct {
   double best_score;
   double value_per_tile[8][10][8];
 
-  void preprocess_patterns(state_t& state) {
+  void preprocess_patterns(state_t& state, state_t& initial_state) {
+    // Only add patterns that contain at least one tile in the original hand
     all_patterns.clear();
     all_pairs.clear();
     for(int i = 1; i <= 7; i++) {
       for(int suit = MAN; suit <= SOU; suit++) {
-        if(state.n_tiles[suit][i] > 0 && state.n_tiles[suit][i + 1] > 0 && state.n_tiles[suit][i + 2] > 0) {
+        bool pattern_exists = (state.n_tiles[suit][i] > 0 && state.n_tiles[suit][i + 1] > 0 && state.n_tiles[suit][i + 2] > 0);
+        bool in_initial_state = (initial_state.n_tiles[suit][i] > 0 || initial_state.n_tiles[suit][i + 1] > 0 || initial_state.n_tiles[suit][i + 2] > 0);
+        if (pattern_exists && in_initial_state) {
           all_patterns.push_back({ suit, i, CHI });
         }
       }
     }
     for(int i = 1; i <= 9; i++) {
       for(int suit = MAN; suit <= HONORS; suit++) {
-        if(state.n_tiles[suit][i] >= 3) {
+        if(state.n_tiles[suit][i] >= 3 && initial_state.n_tiles[suit][i] > 0) {
           all_patterns.push_back({ suit, i, PON });
         }
-        if(state.n_tiles[suit][i] >= 2) {
+        if(state.n_tiles[suit][i] >= 2 && initial_state.n_tiles[suit][i] > 0) {
           all_pairs.push_back({ suit, i, PAIR });
         }
       }
@@ -237,13 +240,13 @@ typedef struct {
     }
   }
 
-  void full_solve(state_t& state, int offset) {
+  void full_solve(state_t& state, int offset, state_t& initial_state) {
     init_win_probability(offset);
     accumulator.clear();
     reset_results();
-    preprocess_patterns(state);
+    preprocess_patterns(state, initial_state);
     meld_solve(state);
-    // chitoitsu_solve(state);
+    chitoitsu_solve(state);
   }
 
   void reset_game_state() {

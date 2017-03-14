@@ -29,7 +29,7 @@ tile_t eval_state(solver_t& solver, state_t& initial_state, deck_t& initial_deck
       tile_t tile = deck.get_next();
       state.insert(tile.suit, tile.val, tile.is_red_dora);
     }
-    solver.full_solve(state, offset);
+    solver.full_solve(state, offset, initial_state);
 
     double score = solver.best_score;
     score_sum += score;
